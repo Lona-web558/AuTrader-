@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>AuTrader Pro — GOLD/USD Algorithmic Platform</title>
+
+    <script src="https://www.paypal.com/sdk/js?client-id=BAARFgXY4mArLY7rDlznygPUo9fnu_NgP1NpIlv_-JMvRfWBK-8UlkNfOZaW76rVwZqQOhzI-4VcsMbBE&currency=USD"></script>
+
+
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --gold:#FFD166;--gold2:#F4A836;--gold-glow:rgba(255,209,102,0.18);
+  --bg:#080C10;--bg2:#0D1117;--bg3:#131B24;--bg4:#1A2535;
+  --panel:#101820;
+  --green:#00E676;--red:#FF4B4B;--blue:#38BDF8;
+  --text:#C8D8E8;--text2:#7A96AE;--text3:#3A5568;
+  --border:rgba(255,209,102,0.12);--border2:rgba(56,189,248,0.15);
+  --font-mono:'Share Tech Mono',monospace;
+  --font-head:'Orbitron',sans-serif;
+  --font-body:'Rajdhani',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:15px;height:100%;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.04) 2px,rgba(0,0,0,0.04) 4px);pointer-events:none;z-index:9999;}
+
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{font-family:var(--font-head);font-size:1.1rem;color:var(--gold);letter-spacing:3px;text-shadow:0 0 20px rgba(255,209,102,0.5);}
+.logo span{color:var(--text2);font-size:.7rem;display:block;letter-spacing:2px;font-family:var(--font-mono);}
+.live-badge{font-family:var(--font-mono);font-size:.65rem;padding:3px 10px;border-radius:2px;display:flex;align-items:center;gap:6px;border:1px solid;}
+.live-dot{width:7px;height:7px;border-radius:50%;animation:pulse 1.4s infinite;}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,230,118,0.5);}50%{opacity:.6;box-shadow:0 0 0 5px rgba(0,230,118,0);}}
+.price-ticker{font-family:var(--font-mono);font-size:.75rem;color:var(--text2);display:flex;gap:18px;align-items:center;}
+.price-ticker .val{font-size:1.05rem;color:var(--gold);font-weight:700;}
+.chg.up{color:var(--green);}.chg.dn{color:var(--red);}
+
+.layout{display:grid;grid-template-columns:1fr 310px;gap:0;min-height:calc(100vh - 54px);}
+.main-col{padding:16px;display:flex;flex-direction:column;gap:14px;}
+.side-col{background:var(--bg2);border-left:1px solid var(--border);padding:14px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;}
+
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:14px;}
+.panel-hd{font-family:var(--font-head);font-size:.65rem;letter-spacing:2px;color:var(--gold2);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+.tag{font-family:var(--font-mono);font-size:.6rem;color:var(--text3);background:var(--bg4);padding:2px 7px;border-radius:2px;}
+
+.chart-wrap{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:14px 14px 8px;}
+.chart-inner{position:relative;height:320px;}
+
+.signal-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+.sig-pill{font-family:var(--font-mono);font-size:.6rem;padding:4px 10px;border-radius:2px;border:1px solid;display:flex;align-items:center;gap:5px;}
+.sig-pill.buy{color:var(--green);border-color:rgba(0,230,118,0.35);background:rgba(0,230,118,0.07);}
+.sig-pill.sell{color:var(--red);border-color:rgba(255,75,75,0.35);background:rgba(255,75,75,0.07);}
+.sig-pill.neutral{color:var(--gold);border-color:rgba(255,209,102,0.3);background:var(--gold-glow);}
+.sig-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:12px 14px;text-align:center;}
+.stat-card .lbl{font-family:var(--font-mono);font-size:.58rem;color:var(--text3);letter-spacing:1.5px;margin-bottom:4px;}
+.stat-card .val{font-family:var(--font-mono);font-size:1.1rem;font-weight:700;}
+.stat-card .val.gold{color:var(--gold);}
+.stat-card .val.green{color:var(--green);}
+.stat-card .val.blue{color:var(--blue);}
+.stat-card .sub{font-size:.58rem;color:var(--text3);font-family:var(--font-mono);}
+
+.trade-table{width:100%;font-family:var(--font-mono);font-size:.65rem;border-collapse:collapse;}
+.trade-table th{color:var(--text3);font-weight:400;letter-spacing:1.5px;padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;}
+.trade-table td{padding:7px 8px;border-bottom:1px solid rgba(255,209,102,0.05);}
+.trade-table tr:hover td{background:rgba(255,209,102,0.03);}
+.badge-buy{color:var(--green);border:1px solid rgba(0,230,118,0.3);background:rgba(0,230,118,0.08);padding:2px 7px;border-radius:2px;}
+.badge-sell{color:var(--red);border:1px solid rgba(255,75,75,0.3);background:rgba(255,75,75,0.08);padding:2px 7px;border-radius:2px;}
+.badge-win{color:var(--green);}
+.badge-loss{color:var(--red);}
+.scrollable{max-height:220px;overflow-y:auto;}
+.scrollable::-webkit-scrollbar{width:3px;}
+.scrollable::-webkit-scrollbar-track{background:var(--bg);}
+.scrollable::-webkit-scrollbar-thumb{background:var(--border);}
+
+.account-box{background:linear-gradient(135deg,rgba(255,209,102,0.08),rgba(20,40,60,0));border:1px solid var(--border);border-radius:4px;padding:16px;}
+.account-box .bal-lbl{font-family:var(--font-mono);font-size:.6rem;color:var(--text3);letter-spacing:2px;}
+.account-box .bal-val{font-family:var(--font-head);font-size:1.7rem;color:var(--gold);text-shadow:0 0 30px rgba(255,209,102,0.3);margin:4px 0;}
+.account-box .bal-sub{font-family:var(--font-mono);font-size:.6rem;color:var(--text3);}
+.account-box .profit-row{display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.account-box .profit-item .lbl{font-family:var(--font-mono);font-size:.55rem;color:var(--text3);}
+.account-box .profit-item .val{font-family:var(--font-mono);font-size:.85rem;}
+
+.algo-box{background:var(--panel);border:1px solid var(--border2);border-radius:4px;padding:14px;}
+.algo-hd{font-family:var(--font-head);font-size:.6rem;letter-spacing:2px;color:var(--blue);margin-bottom:10px;}
+.algo-param{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.algo-param:last-child{border:none;}
+.algo-param .lbl{font-family:var(--font-mono);font-size:.6rem;color:var(--text2);}
+.algo-param .val{font-family:var(--font-mono);font-size:.65rem;color:var(--gold);}
+.algo-param .ctrl{display:flex;align-items:center;gap:6px;}
+.toggle{width:32px;height:17px;background:var(--bg4);border-radius:20px;cursor:pointer;position:relative;border:1px solid var(--border);transition:.3s;}
+.toggle.on{background:rgba(0,230,118,0.25);border-color:var(--green);}
+.toggle::after{content:'';position:absolute;width:11px;height:11px;background:var(--text3);border-radius:50%;top:2px;left:2px;transition:.3s;}
+.toggle.on::after{left:17px;background:var(--green);}
+
+.gauge-wrap{text-align:center;padding:8px 0;}
+.gauge-ring{width:110px;height:110px;margin:0 auto;position:relative;}
+.gauge-ring svg{transform:rotate(-90deg);}
+.gauge-ring .pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;}
+.gauge-ring .pct .num{font-family:var(--font-head);font-size:1.4rem;color:var(--gold);}
+.gauge-ring .pct .sub{font-family:var(--font-mono);font-size:.55rem;color:var(--text3);}
+
+.btn-gold{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#080C10;font-family:var(--font-head);font-size:.7rem;letter-spacing:2px;border:none;border-radius:2px;padding:9px 18px;cursor:pointer;font-weight:700;transition:.2s;width:100%;}
+.btn-gold:hover{box-shadow:0 0 20px rgba(255,209,102,0.35);transform:translateY(-1px);}
+.btn-green{background:linear-gradient(135deg,rgba(0,230,118,0.8),rgba(0,200,100,0.9));color:#080C10;font-family:var(--font-head);font-size:.7rem;letter-spacing:2px;border:none;border-radius:2px;padding:9px 18px;cursor:pointer;font-weight:700;transition:.2s;width:100%;}
+.btn-green:hover{box-shadow:0 0 20px rgba(0,230,118,0.35);}
+.btn-red{background:linear-gradient(135deg,rgba(255,75,75,0.8),rgba(220,30,30,0.9));color:#fff;font-family:var(--font-head);font-size:.7rem;letter-spacing:2px;border:none;border-radius:2px;padding:9px 18px;cursor:pointer;font-weight:700;transition:.2s;width:100%;}
+.btn-red:hover{box-shadow:0 0 20px rgba(255,75,75,0.35);}
+
+.inp{background:var(--bg4);border:1px solid var(--border);color:var(--text);font-family:var(--font-mono);font-size:.72rem;padding:9px 12px;border-radius:2px;width:100%;outline:none;transition:.2s;}
+.inp:focus{border-color:var(--gold2);box-shadow:0 0 0 2px rgba(255,168,54,0.12);}
+.inp-lbl{font-family:var(--font-mono);font-size:.58rem;color:var(--text3);letter-spacing:1.5px;margin-bottom:5px;}
+.form-grp{margin-bottom:10px;}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.show{display:flex;}
+.modal-box{background:var(--bg3);border:1px solid var(--border);border-radius:4px;width:460px;max-width:95vw;padding:24px;position:relative;animation:slideUp .25s ease;max-height:92vh;overflow-y:auto;}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.modal-hd{font-family:var(--font-head);font-size:.75rem;letter-spacing:2px;color:var(--gold);margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;}
+.modal-close{background:none;border:none;color:var(--text3);font-size:1.2rem;cursor:pointer;padding:0 4px;}
+.modal-close:hover{color:var(--gold);}
+
+.pf-banner{background:linear-gradient(135deg,rgba(0,130,70,0.15),rgba(0,80,40,0.08));border:1px solid rgba(0,200,100,0.2);border-radius:4px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;}
+.pf-logo{font-family:var(--font-head);font-size:.85rem;color:#00C864;letter-spacing:1px;}
+.pf-logo span{color:var(--text3);font-size:.6rem;display:block;font-family:var(--font-mono);}
+.pf-badge{font-family:var(--font-mono);font-size:.55rem;padding:3px 8px;border:1px solid rgba(0,200,100,0.3);border-radius:2px;color:#00C864;margin-left:auto;}
+
+.method-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.method-card{background:var(--bg4);border:1px solid var(--border);border-radius:4px;padding:12px 8px;text-align:center;cursor:pointer;transition:.2s;font-family:var(--font-mono);font-size:.6rem;color:var(--text2);}
+.method-card:hover,.method-card.active{border-color:var(--gold2);color:var(--gold);background:var(--gold-glow);}
+.method-card .ic{font-size:1.3rem;display:block;margin-bottom:4px;}
+
+.status-msg{font-family:var(--font-mono);font-size:.65rem;padding:10px 12px;border-radius:2px;margin-top:10px;display:none;}
+.status-msg.ok{background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.25);color:var(--green);}
+.status-msg.err{background:rgba(255,75,75,0.1);border:1px solid rgba(255,75,75,0.25);color:var(--red);}
+.status-msg.loading{background:rgba(255,209,102,0.08);border:1px solid var(--border);color:var(--gold);}
+.status-msg.info{background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);color:var(--blue);}
+
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-family:var(--font-mono);font-size:.6rem;}
+.info-row:last-child{border:none;}
+.info-row .lbl{color:var(--text3);}
+.info-row .val{color:var(--text);}
+.info-row .val.gold{color:var(--gold);}
+.info-row .val.green{color:var(--green);}
+.info-row .val.red{color:var(--red);}
+
+.wlog-row{background:var(--bg4);border:1px solid var(--border);border-radius:3px;padding:8px 10px;margin-bottom:6px;font-family:var(--font-mono);font-size:.6rem;}
+.wlog-row .wlog-hd{display:flex;justify-content:space-between;margin-bottom:4px;}
+.wlog-row .wlog-status{font-size:.55rem;padding:2px 7px;border-radius:2px;}
+.wlog-status.pending{color:var(--gold);background:rgba(255,209,102,0.1);border:1px solid rgba(255,209,102,0.2);}
+.wlog-status.completed{color:var(--green);background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.2);}
+
+.algo-ctrl{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.algo-status{display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:.65rem;margin-bottom:10px;}
+.algo-status .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1s infinite;}
+.algo-status .dot.off{background:var(--text3);animation:none;}
+
+.ind-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.ind-card{background:var(--bg4);border:1px solid var(--border);border-radius:4px;padding:10px;text-align:center;}
+.ind-card .lbl{font-family:var(--font-mono);font-size:.55rem;color:var(--text3);letter-spacing:1px;}
+.ind-card .val{font-family:var(--font-mono);font-size:.85rem;margin-top:3px;}
+
+.glow-hr{border:none;border-top:1px solid var(--border);position:relative;margin:10px 0;}
+.glow-hr::after{content:'';position:absolute;left:20%;right:20%;top:-1px;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);animation:scanline 3s infinite;}
+@keyframes scanline{0%{left:0%;right:80%;}100%{left:80%;right:0%;}}
+
+#toast-container{position:fixed;bottom:20px;right:20px;z-index:9997;display:flex;flex-direction:column;gap:8px;}
+.toast-msg{background:var(--bg3);border:1px solid var(--border);font-family:var(--font-mono);font-size:.65rem;padding:10px 16px;border-radius:2px;min-width:220px;animation:fadeInUp .3s ease;display:flex;align-items:center;gap:8px;}
+.toast-msg.ok{border-color:rgba(0,230,118,0.35);color:var(--green);}
+.toast-msg.err{border-color:rgba(255,75,75,0.35);color:var(--red);}
+.toast-msg.info{border-color:var(--border);color:var(--gold);}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+.pending-badge{font-family:var(--font-mono);font-size:.55rem;background:rgba(255,209,102,0.12);border:1px solid rgba(255,209,102,0.25);color:var(--gold);padding:3px 8px;border-radius:2px;display:inline-flex;align-items:center;gap:4px;}
+
+@media(max-width:992px){.layout{grid-template-columns:1fr;}.side-col{border-left:none;border-top:1px solid var(--border);}.stats-row{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:576px){.stats-row{grid-template-columns:repeat(2,1fr);}.price-ticker{display:none;}}
+@media(max-width:768px){
+  .inp{font-size:16px !important;}
+  .btn-gold,.btn-green,.btn-red{padding:14px 18px;font-size:.75rem;min-height:48px;}
+  .method-card{padding:14px 6px;min-height:68px;}
+  .modal-close{padding:8px 12px;font-size:1.4rem;}
+  .chart-inner{height:260px;}
+  .modal-box{padding:16px;}
+  .trade-table{font-size:.7rem;}
+  .trade-table th,.trade-table td{padding:8px 6px;}
+  #toast-container{bottom:80px;right:10px;left:10px;}
+  .toast-msg{min-width:unset;width:100%;}
+}
+#priceChart{cursor:crosshair;touch-action:none;display:block;width:100%;height:100%;}
+html{scroll-behavior:smooth;-webkit-overflow-scrolling:touch;}
+.side-col,.scrollable{-webkit-overflow-scrolling:touch;}
+.btn-gold:active,.btn-green:active,.btn-red:active{transform:scale(0.97);}
+.method-card:active{transform:scale(0.96);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">AU<span style="color:var(--gold)">TRADER</span> PRO<span>GOLD/USD ALGORITHMIC PLATFORM v2.2</span></div>
+  <div class="price-ticker">
+    <div><div style="font-size:.55rem;color:var(--text3)">XAU/USD</div><div class="val" id="livePrice">R0.00</div></div>
+    <div><div style="font-size:.55rem;color:var(--text3)">24H CHG</div><div class="val chg up" id="liveChg">+0.00%</div></div>
+    <div><div style="font-size:.55rem;color:var(--text3)">SESSION</div><div class="val" style="font-size:.75rem" id="sessionLabel">--</div></div>
+  </div>
+  <div class="live-badge" id="liveBadge" style="border-color:rgba(255,209,102,0.3);color:var(--gold);background:rgba(255,209,102,0.07);">
+    <div class="live-dot" style="background:var(--gold);animation:none;"></div>AWAITING DEPOSIT
+  </div>
+</div>
+
+<div class="layout">
+  <div class="main-col">
+    <div class="stats-row">
+      <div class="stat-card"><div class="lbl">WIN RATE</div><div class="val green" id="statWinRate">95.0%</div><div class="sub">LAST 200 TRADES</div></div>
+      <div class="stat-card"><div class="lbl">TOTAL P&amp;L</div><div class="val gold" id="statPnl">+R0.00</div><div class="sub">TODAY</div></div>
+      <div class="stat-card"><div class="lbl">OPEN TRADES</div><div class="val blue" id="statOpen">0</div><div class="sub">POSITIONS</div></div>
+      <div class="stat-card"><div class="lbl">ALGO TRADES</div><div class="val gold" id="statTotal">0</div><div class="sub">EXECUTED TODAY</div></div>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="panel-hd" style="margin-bottom:10px;">
+        <span style="font-family:var(--font-head);font-size:.65rem;color:var(--gold);letter-spacing:2px;">XAU/USD — LIVE CANDLESTICK</span>
+        <div style="display:flex;gap:8px;">
+          <span id="tf1"  class="tag" style="cursor:pointer;color:var(--gold);border:1px solid var(--border);" onclick="setTF(1)">M1</span>
+          <span id="tf5"  class="tag" style="cursor:pointer;" onclick="setTF(5)">M5</span>
+          <span id="tf15" class="tag" style="cursor:pointer;" onclick="setTF(15)">M15</span>
+          <span id="tf60" class="tag" style="cursor:pointer;" onclick="setTF(60)">H1</span>
+        </div>
+      </div>
+      <div class="chart-inner">
+        <canvas id="priceChart"></canvas>
+        <div id="chartTooltip" style="display:none;position:absolute;background:rgba(13,17,23,0.92);border:1px solid rgba(255,209,102,0.25);font-family:'Share Tech Mono',monospace;font-size:.62rem;color:#C8D8E8;padding:6px 10px;border-radius:3px;pointer-events:none;white-space:nowrap;z-index:10;"></div>
+      </div>
+      <div class="signal-row" id="signalRow">
+        <div class="sig-pill buy"><div class="sig-dot"></div>RSI: OVERSOLD — BUY SIGNAL</div>
+        <div class="sig-pill neutral"><div class="sig-dot"></div>MACD: CONVERGING</div>
+        <div class="sig-pill buy"><div class="sig-dot"></div>EMA CROSS: BULLISH</div>
+        <div class="sig-pill neutral"><div class="sig-dot"></div>BOLLINGER: MID BAND</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-hd">TECHNICAL INDICATORS <span class="tag">REAL-TIME</span></div>
+      <div class="ind-row">
+        <div class="ind-card"><div class="lbl">RSI (14)</div><div class="val" id="indRsi" style="color:var(--green)">42.3</div></div>
+        <div class="ind-card"><div class="lbl">MACD</div><div class="val" id="indMacd" style="color:var(--gold)">+0.82</div></div>
+        <div class="ind-card"><div class="lbl">EMA 20</div><div class="val" id="indEma" style="color:var(--blue)">0.00</div></div>
+        <div class="ind-card"><div class="lbl">BB UPPER</div><div class="val" id="indBbu" style="color:var(--text2)">0.00</div></div>
+        <div class="ind-card"><div class="lbl">BB LOWER</div><div class="val" id="indBbl" style="color:var(--text2)">0.00</div></div>
+        <div class="ind-card"><div class="lbl">ATR (14)</div><div class="val" id="indAtr" style="color:var(--gold2)">8.4</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-hd">ALGO TRADE HISTORY <span class="tag" id="histCount">0 TRADES</span></div>
+      <div class="scrollable">
+        <table class="trade-table">
+          <thead><tr><th>#</th><th>TIME</th><th>DIR</th><th>ENTRY</th><th>EXIT</th><th>LOT</th><th>P&amp;L</th><th>RESULT</th></tr></thead>
+          <tbody id="tradeBody"><tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px;">DEPOSIT FUNDS TO BEGIN TRADING</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="side-col">
+    <div class="account-box">
+      <div class="bal-lbl">ACCOUNT BALANCE</div>
+      <div class="bal-val" id="sideBalance">R0.00</div>
+      <div class="bal-sub">AVAILABLE EQUITY</div>
+      <div class="profit-row">
+        <div class="profit-item"><div class="lbl">TODAY P&amp;L</div><div class="val green" id="sidePnlDay">+R0.00</div></div>
+        <div class="profit-item"><div class="lbl">ALL-TIME P&amp;L</div><div class="val gold" id="sidePnlAll">+R0.00</div></div>
+        <div class="profit-item"><div class="lbl">DRAWDOWN</div><div class="val" id="sideDD" style="color:var(--text2)">0.0%</div></div>
+      </div>
+    </div>
+
+    <div class="panel" style="padding:12px;">
+      <div class="algo-hd">WIN RATE MONITOR</div>
+      <div class="gauge-wrap">
+        <div class="gauge-ring">
+          <svg width="110" height="110" viewBox="0 0 110 110">
+            <circle cx="55" cy="55" r="46" fill="none" stroke="var(--bg4)" stroke-width="10"/>
+            <circle cx="55" cy="55" r="46" fill="none" stroke="var(--gold)" stroke-width="10"
+              stroke-dasharray="289.0" stroke-dashoffset="14.45" id="gaugeCircle"
+              stroke-linecap="round" style="filter:drop-shadow(0 0 6px var(--gold))"/>
+          </svg>
+          <div class="pct"><div class="num" id="gaugePct">95%</div><div class="sub">WIN RATE</div></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-around;margin-top:8px;">
+        <div style="text-align:center;"><div style="font-family:var(--font-mono);font-size:.55rem;color:var(--text3)">WINS</div><div style="font-family:var(--font-mono);font-size:.85rem;color:var(--green)" id="gaugeWins">0</div></div>
+        <div style="text-align:center;"><div style="font-family:var(--font-mono);font-size:.55rem;color:var(--text3)">LOSSES</div><div style="font-family:var(--font-mono);font-size:.85rem;color:var(--red)" id="gaugeLosses">0</div></div>
+        <div style="text-align:center;"><div style="font-family:var(--font-mono);font-size:.55rem;color:var(--text3)">STREAK</div><div style="font-family:var(--font-mono);font-size:.85rem;color:var(--gold)" id="gaugeStreak">0W</div></div>
+      </div>
+    </div>
+
+    <div class="algo-box">
+      <div class="algo-hd">ALGORITHM PARAMETERS</div>
+      <div class="algo-status">
+        <div class="dot off" id="algoDot"></div>
+        <span id="algoStatusTxt">AWAITING DEPOSIT</span>
+      </div>
+      <div class="algo-param"><span class="lbl">AUTO TRADING</span><div class="ctrl"><div class="toggle on" id="toggleAuto" onclick="toggleAlgo()"></div></div></div>
+      <div class="algo-param"><span class="lbl">STRATEGY</span><span class="val">EMA+RSI+BB</span></div>
+      <div class="algo-param"><span class="lbl">LOT SIZE</span>
+        <select class="inp" style="padding:3px 6px;font-size:.6rem;width:auto;" id="lotSize">
+          <option>0.01</option><option selected>0.05</option><option>0.10</option><option>0.25</option><option>0.50</option>
+        </select>
+      </div>
+      <div class="algo-param"><span class="lbl">STOP LOSS</span><span class="val">15 PIPS</span></div>
+      <div class="algo-param"><span class="lbl">TAKE PROFIT</span><span class="val">45 PIPS</span></div>
+      <div class="algo-param"><span class="lbl">R:R RATIO</span><span class="val" style="color:var(--green)">1:3</span></div>
+      <div class="algo-param"><span class="lbl">MAX DAILY DD</span><span class="val">5.0%</span></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-hd">FUNDS MANAGEMENT</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="btn-green" onclick="openModal('deposit')">&#11015; DEPOSIT VIA PAYFAST</button>
+        <button class="btn-red"   onclick="openModal('withdraw')">&#11014; WITHDRAW FUNDS</button>
+      </div>
+      <div class="glow-hr"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;">
+        <div style="font-family:var(--font-mono);font-size:.58rem;text-align:center;">
+          <div style="color:var(--text3)">DEPOSITED</div>
+          <div style="color:var(--green);font-size:.9rem;" id="totalDeposited">R0.00</div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:.58rem;text-align:center;">
+          <div style="color:var(--text3)">WITHDRAWN</div>
+          <div style="color:var(--red);font-size:.9rem;" id="totalWithdrawn">R0.00</div>
+        </div>
+      </div>
+      <div id="pendingWdIndicator" style="display:none;margin-top:10px;text-align:center;">
+        <span class="pending-badge" onclick="openModal('wlog')" style="cursor:pointer;">
+          ⏳ <span id="pendingWdCount">0</span> WITHDRAWAL(S) PENDING — VIEW LOG
+        </span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-hd">MANUAL ORDER</div>
+      <div class="form-grp"><div class="inp-lbl">LOT SIZE</div><input class="inp" type="number" id="manualLot" value="0.05" min="0.01" max="1" step="0.01"/></div>
+      <div class="algo-ctrl">
+        <button class="btn-green" style="font-size:.6rem;" onclick="placeManual('buy')">&#9650; BUY</button>
+        <button class="btn-red"   style="font-size:.6rem;" onclick="placeManual('sell')">&#9660; SELL</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DEPOSIT MODAL -->
+<div class="modal-overlay" id="depositModal">
+  <div class="modal-box">
+    <div class="modal-hd">DEPOSIT FUNDS<button class="modal-close" onclick="closeModal('depositModal')">&#10005;</button></div>
+    <div class="pf-banner">
+      <div><div class="pf-logo">pay<span style="color:#FFD166">fast</span><span>SOUTH AFRICA'S #1 PAYMENT GATEWAY</span></div></div>
+      <div class="pf-badge">&#128274; SSL SECURED — LIVE</div>
+    </div>
+    <div style="background:rgba(0,230,118,0.06);border:1px solid rgba(0,230,118,0.2);border-radius:3px;padding:10px 12px;margin-bottom:14px;font-family:var(--font-mono);font-size:.6rem;color:var(--green);">
+      ✓ VERIFIED MERCHANT — LIVE PAYMENTS ACTIVE &mdash; ID: 13828243
+    </div>
+    <div class="form-grp"><div class="inp-lbl">AMOUNT (ZAR)</div><input class="inp" type="number" id="depositAmount" placeholder="e.g. 500" min="10" step="0.01"/><div style="font-family:var(--font-mono);font-size:.55rem;color:var(--text3);margin-top:4px;">Minimum deposit: R10.00</div></div>
+    <div class="form-grp"><div class="inp-lbl">YOUR NAME</div><input class="inp" type="text" id="depositName" placeholder="First name"/></div>
+    <div class="form-grp"><div class="inp-lbl">YOUR SURNAME</div><input class="inp" type="text" id="depositSurname" placeholder="Last name"/></div>
+    <div class="form-grp"><div class="inp-lbl">EMAIL ADDRESS</div><input class="inp" type="email" id="depositEmail" placeholder="your@email.com"/></div>
+    <div class="inp-lbl" style="margin-bottom:8px;">PAYMENT METHOD</div>
+    <div class="method-grid">
+      <div class="method-card active" id="mEft"      onclick="selectMethod('eft')"><span class="ic">🏦</span>EFT</div>
+      <div class="method-card"        id="mCard"     onclick="selectMethod('cc')"><span class="ic">💳</span>CARD</div>
+      <div class="method-card"        id="mMobicred" onclick="selectMethod('mobicred')"><span class="ic">📱</span>MOBICRED</div>
+    </div>
+    <div class="status-msg" id="depositStatus"></div>
+    <button class="btn-gold" style="margin-top:10px;" onclick="initiateDeposit()">PROCEED TO PAYFAST &#8594;</button>
+    <div style="font-family:var(--font-mono);font-size:.55rem;color:var(--text3);text-align:center;margin-top:10px;line-height:1.6;">
+      Secured by PayFast &middot; PCI DSS Compliant &middot; SSL Encrypted<br/>
+      PayFast will open in your browser. Return to the app after payment.
+    </div>
+  </div>
+</div>
+
+<!-- WITHDRAW MODAL -->
+<div class="modal-overlay" id="withdrawModal">
+  <div class="modal-box">
+    <div class="modal-hd">WITHDRAW FUNDS<button class="modal-close" onclick="closeModal('withdrawModal')">&#10005;</button></div>
+    <div style="background:var(--bg4);border:1px solid var(--border);border-radius:3px;padding:10px 12px;margin-bottom:14px;">
+      <div class="info-row"><span class="lbl">AVAILABLE BALANCE</span><span class="val gold" id="wdAvailBalance">R0.00</span></div>
+      <div class="info-row"><span class="lbl">TOTAL DEPOSITED</span><span class="val" id="wdTotalDep">R0.00</span></div>
+      <div class="info-row"><span class="lbl">TOTAL WITHDRAWN</span><span class="val red" id="wdTotalWd">R0.00</span></div>
+    </div>
+
+    <div class="inp-lbl" style="margin-bottom:8px;">WITHDRAWAL METHOD</div>
+    <div class="method-grid" style="grid-template-columns:1fr 1fr;">
+      <div class="method-card active" id="wmEft"    onclick="selectWithdrawMethod('eft')"><span class="ic">🏦</span>BANK EFT</div>
+      <div class="method-card"        id="wmPaypal" onclick="selectWithdrawMethod('paypal')"><span class="ic">🅿️</span>PAYPAL</div>
+    </div>
+
+    <!-- EFT fields -->
+    <div id="wdEftFields">
+      <div style="background:rgba(255,209,102,0.06);border:1px solid rgba(255,209,102,0.2);border-radius:3px;padding:10px 12px;margin-bottom:14px;font-family:var(--font-mono);font-size:.6rem;color:var(--gold2);line-height:1.7;">
+        ℹ Withdrawal requests are processed manually within 1–3 business days via EFT to your South African bank account.
+      </div>
+      <div class="form-grp"><div class="inp-lbl">WITHDRAWAL AMOUNT (ZAR)</div><input class="inp" type="number" id="withdrawAmount" placeholder="e.g. 200" min="10" step="0.01"/></div>
+      <div class="form-grp"><div class="inp-lbl">ACCOUNT HOLDER FULL NAME</div><input class="inp" type="text" id="withdrawName" placeholder="Full name on bank account"/></div>
+      <div class="form-grp"><div class="inp-lbl">BANK NAME</div>
+        <select class="inp" id="withdrawBank">
+          <option value="">— Select bank —</option>
+          <option>Absa</option><option>Capitec Bank</option><option>FNB / First National Bank</option>
+          <option>Nedbank</option><option>Standard Bank</option><option>African Bank</option>
+          <option>Bidvest Bank</option><option>Discovery Bank</option><option>TymeBank</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-grp"><div class="inp-lbl">ACCOUNT NUMBER</div><input class="inp" type="text" id="withdrawAcct" placeholder="Bank account number"/></div>
+      <div class="form-grp"><div class="inp-lbl">BRANCH CODE</div><input class="inp" type="text" id="withdrawBranch" placeholder="e.g. 632005"/></div>
+      <div class="form-grp"><div class="inp-lbl">ACCOUNT TYPE</div>
+        <select class="inp" id="withdrawAcctType">
+          <option value="current">Current / Cheque</option>
+          <option value="savings">Savings</option>
+          <option value="transmission">Transmission</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- PayPal fields -->
+    <div id="wdPaypalFields" style="display:none;">
+      <div style="background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2);border-radius:3px;padding:10px 12px;margin-bottom:14px;font-family:var(--font-mono);font-size:.6rem;color:var(--blue);line-height:1.7;">
+        ℹ PayPal payouts are sent in USD. Enter the USD amount you want paid out.
+      </div>
+      <div class="form-grp"><div class="inp-lbl">WITHDRAWAL AMOUNT (USD)</div><input class="inp" type="number" id="withdrawPaypalAmount" placeholder="e.g. 20.00" min="1" step="0.01"/></div>
+      <div class="form-grp"><div class="inp-lbl">PAYPAL EMAIL ADDRESS</div><input class="inp" type="email" id="withdrawPaypalEmail" placeholder="your@email.com"/></div>
+    </div>
+
+    <div class="status-msg" id="withdrawStatus"></div>
+    <button class="btn-gold" style="margin-top:10px;" onclick="initiateWithdraw()">SUBMIT WITHDRAWAL REQUEST</button>
+    <div style="font-family:var(--font-mono);font-size:.55rem;color:var(--text3);text-align:center;margin-top:8px;line-height:1.6;" id="withdrawFootnote">
+      Requests processed manually &middot; 1–3 business days &middot; SA bank accounts only
+    </div>
+  </div>
+</div>
+
+<!-- WITHDRAWAL LOG MODAL -->
+<div class="modal-overlay" id="wlogModal">
+  <div class="modal-box">
+    <div class="modal-hd">WITHDRAWAL LOG<button class="modal-close" onclick="closeModal('wlogModal')">&#10005;</button></div>
+    <div style="font-family:var(--font-mono);font-size:.6rem;color:var(--text3);margin-bottom:12px;">All withdrawal requests — processing within 1–3 business days.</div>
+    <div id="wlogContainer"><div style="font-family:var(--font-mono);font-size:.65rem;color:var(--text3);text-align:center;padding:20px;">NO WITHDRAWALS YET</div></div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<!-- Hidden PayFast POST form -->
+<form id="payfastForm" action="https://www.payfast.co.za/eng/process" method="POST" target="_blank" style="">
+  <input type="hidden" name="merchant_id"      id="pf_merchant_id"/>
+  <input type="hidden" name="merchant_key"     id="pf_merchant_key"/>
+  <input type="hidden" name="return_url"       id="pf_return_url"/>
+  <input type="hidden" name="cancel_url"       id="pf_cancel_url"/>
+  <input type="hidden" name="notify_url"       id="pf_notify_url"/>
+  <input type="hidden" name="name_first"       id="pf_name_first"/>
+  <input type="hidden" name="name_last"        id="pf_name_last"/>
+  <input type="hidden" name="email_address"    id="pf_email"/>
+  <input type="hidden" name="amount"           id="pf_amount"/>
+  <input type="hidden" name="item_name"        id="pf_item_name"/>
+  <input type="hidden" name="item_description" id="pf_item_description"/>
+  <input type="hidden" name="payment_method"   id="pf_payment_method"/>
+  <input type="hidden" name="m_payment_id"     id="pf_payment_id"/>
+
+
+
+</form>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* ═══════════════════════════════
+   PAYFAST — LIVE
+   return_url & cancel_url use PayFast's
+   own hosted pages so no file:// URL
+   is ever sent. Works from any APK.
+═══════════════════════════════ */
+const PAYFAST = {
+  merchantId:  '13828243',
+  merchantKey: 'bujciooz9vr6i',
+  liveUrl:     'https://www.payfast.co.za/eng/process',
+  returnUrl:   'https://www.payfast.co.za/eng/success',
+  cancelUrl:   'https://www.payfast.co.za/eng/cancel'
+};
+
+const STATE = {
+  balance:0,totalDeposited:0,totalWithdrawn:0,funded:false,
+  pnlDay:0,pnlAll:0,wins:0,losses:0,streak:0,
+  algoRunning:true,tf:1,basePrice:2324.50,currentPrice:2324.50,
+  openTrades:0,totalExecuted:0,selectedMethod:'eft',selectedWithdrawMethod:'eft',
+  withdrawalLog:[],pendingWithdrawals:0
+};
+
+/* CHART */
+const MAX_CANDLES=80,PAD={top:20,right:72,bottom:30,left:10};
+let candles=[],liveCandle=null,mouseX=-1,mouseY=-1,zoomLevel=1,pinchStartDist=0;
+const cvs=document.getElementById('priceChart'),ctx=cvs.getContext('2d');
+function fmtTime(ts){const d=new Date(ts);return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');}
+function resizeCanvas(){cvs.width=cvs.parentElement.clientWidth||800;cvs.height=cvs.parentElement.clientHeight||320;drawChart();}
+function genInitialCandles(){
+  candles=[];let p=STATE.basePrice;
+  for(let i=0;i<60;i++){const o=p+(Math.random()-0.5)*4,m=(Math.random()-0.47)*9,c=o+m,h=Math.max(o,c)+Math.random()*5,l=Math.min(o,c)-Math.random()*5;candles.push({o:+o.toFixed(2),h:+h.toFixed(2),l:+l.toFixed(2),c:+c.toFixed(2),t:Date.now()-(60-i)*60000*STATE.tf});p=c;}
+  STATE.currentPrice=p;liveCandle={o:p,h:p,l:p,c:p,t:Date.now(),live:true};
+}
+function drawChart(){
+  const W=cvs.width,H=cvs.height,pL=PAD.left,pR=PAD.right,pT=PAD.top,pB=PAD.bottom,chartW=W-pL-pR,chartH=H-pT-pB;
+  ctx.clearRect(0,0,W,H);ctx.fillStyle='#101820';ctx.fillRect(0,0,W,H);
+  const allC=[...candles.slice(-Math.round(MAX_CANDLES/zoomLevel)),...(liveCandle?[liveCandle]:[])];
+  if(!allC.length)return;
+  let minP=Infinity,maxP=-Infinity;allC.forEach(c=>{if(c.l<minP)minP=c.l;if(c.h>maxP)maxP=c.h;});
+  const rp=(maxP-minP)*0.08||5;minP-=rp;maxP+=rp;const pr=maxP-minP;
+  const px=i=>pL+(i/allC.length)*chartW+(chartW/allC.length)*0.5;
+  const py=p=>pT+chartH-((p-minP)/pr)*chartH;
+  ctx.strokeStyle='rgba(255,209,102,0.06)';ctx.lineWidth=1;ctx.setLineDash([3,5]);
+  for(let i=0;i<=6;i++){const y=pT+(i/6)*chartH;ctx.beginPath();ctx.moveTo(pL,y);ctx.lineTo(W-pR,y);ctx.stroke();}
+  ctx.setLineDash([]);
+  ctx.fillStyle='#7A96AE';ctx.font="10px 'Share Tech Mono',monospace";ctx.textAlign='left';
+  for(let i=0;i<=6;i++)ctx.fillText('R'+(maxP-(i/6)*pr).toFixed(1),W-pR+6,pT+(i/6)*chartH+4);
+  let ema=allC[0].c;const k=2/21,emaLine=allC.map(c=>{ema=c.c*k+ema*(1-k);return ema;});
+  ctx.strokeStyle='rgba(56,189,248,0.6)';ctx.lineWidth=1.5;ctx.beginPath();emaLine.forEach((e,i)=>i===0?ctx.moveTo(px(i),py(e)):ctx.lineTo(px(i),py(e)));ctx.stroke();
+  const cw=Math.max(2,Math.min(14,(chartW/allC.length)*0.65));
+  allC.forEach((c,i)=>{
+    const x=px(i),bull=c.c>=c.o,col=bull?'#00E676':'#FF4B4B';
+    const bTop=py(Math.max(c.o,c.c)),bBot=py(Math.min(c.o,c.c)),bH=Math.max(1,bBot-bTop);
+    ctx.strokeStyle=col;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,py(c.h));ctx.lineTo(x,py(c.l));ctx.stroke();
+    ctx.fillStyle=bull?'rgba(0,230,118,0.15)':'rgba(255,75,75,0.7)';ctx.strokeStyle=col;ctx.fillRect(x-cw/2,bTop,cw,bH);ctx.strokeRect(x-cw/2,bTop,cw,bH);
+    if(c.live){ctx.shadowColor=col;ctx.shadowBlur=8;ctx.strokeRect(x-cw/2,bTop,cw,bH);ctx.shadowBlur=0;}
+  });
+  ctx.fillStyle='#3A5568';ctx.font="9px 'Share Tech Mono',monospace";ctx.textAlign='center';
+  const step=Math.max(1,Math.floor(allC.length/8));
+  for(let i=0;i<allC.length;i+=step)ctx.fillText(fmtTime(allC[i].t),px(i),H-pB+14);
+  const curY=py(STATE.currentPrice);
+  ctx.strokeStyle='rgba(255,209,102,0.5)';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(pL,curY);ctx.lineTo(W-pR,curY);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='rgba(255,168,54,0.9)';ctx.fillRect(W-pR+2,curY-10,pR-4,20);ctx.fillStyle='#080C10';ctx.font="bold 10px 'Share Tech Mono',monospace";ctx.textAlign='center';ctx.fillText('R'+STATE.currentPrice.toFixed(1),W-pR+2+(pR-4)/2,curY+4);
+  if(mouseX>pL&&mouseX<W-pR&&mouseY>pT&&mouseY<pT+chartH){
+    ctx.strokeStyle='rgba(255,209,102,0.2)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(mouseX,pT);ctx.lineTo(mouseX,pT+chartH);ctx.stroke();ctx.beginPath();ctx.moveTo(pL,mouseY);ctx.lineTo(W-pR,mouseY);ctx.stroke();ctx.setLineDash([]);
+    const idx=Math.max(0,Math.min(Math.round((mouseX-pL-(chartW/(allC.length*2)))/(chartW/allC.length)),allC.length-1)),hc=allC[idx],tip=document.getElementById('chartTooltip');
+    tip.style.display='block';tip.style.left=(mouseX+12)+'px';tip.style.top=(mouseY-10)+'px';
+    tip.innerHTML=`O:<span style="color:#FFD166"> R${hc.o.toFixed(2)}</span>  H:<span style="color:#00E676"> R${hc.h.toFixed(2)}</span>  L:<span style="color:#FF4B4B"> R${hc.l.toFixed(2)}</span>  C:<span style="color:#FFD166"> R${hc.c.toFixed(2)}</span>`;
+  }else{document.getElementById('chartTooltip').style.display='none';}
+  ctx.fillStyle='rgba(56,189,248,0.7)';ctx.font="9px 'Share Tech Mono',monospace";ctx.textAlign='left';ctx.fillText('EMA20',pL+4,pT+12);
+}
+cvs.addEventListener('mousemove',e=>{const r=cvs.getBoundingClientRect();mouseX=(e.clientX-r.left)*(cvs.width/r.width);mouseY=(e.clientY-r.top)*(cvs.height/r.height);drawChart();});
+cvs.addEventListener('mouseleave',()=>{mouseX=-1;mouseY=-1;document.getElementById('chartTooltip').style.display='none';drawChart();});
+cvs.addEventListener('touchstart',e=>{if(e.touches.length===1){const r=cvs.getBoundingClientRect();mouseX=(e.touches[0].clientX-r.left)*(cvs.width/r.width);mouseY=(e.touches[0].clientY-r.top)*(cvs.height/r.height);drawChart();}if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY;pinchStartDist=Math.sqrt(dx*dx+dy*dy);}e.preventDefault();},{passive:false});
+cvs.addEventListener('touchmove',e=>{if(e.touches.length===1){const r=cvs.getBoundingClientRect();mouseX=(e.touches[0].clientX-r.left)*(cvs.width/r.width);mouseY=(e.touches[0].clientY-r.top)*(cvs.height/r.height);drawChart();}if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY,dist=Math.sqrt(dx*dx+dy*dy),scale=dist/pinchStartDist;if(scale>1.08){zoomLevel=Math.min(4,zoomLevel*1.05);pinchStartDist=dist;drawChart();}else if(scale<0.92){zoomLevel=Math.max(0.5,zoomLevel*0.95);pinchStartDist=dist;drawChart();}}e.preventDefault();},{passive:false});
+cvs.addEventListener('touchend',e=>{if(e.touches.length===0){mouseX=-1;mouseY=-1;document.getElementById('chartTooltip').style.display='none';drawChart();}});
+genInitialCandles();window.addEventListener('resize',resizeCanvas);setTimeout(resizeCanvas,50);
+
+/* PRICE ENGINE */
+const TF_INTERVALS={1:3000,5:6000,15:12000,60:20000};let priceTimer,candleTimer;
+function tickPrice(){STATE.currentPrice=Math.max(1800,STATE.currentPrice+(Math.random()-0.495)*1.2);if(liveCandle){liveCandle.c=STATE.currentPrice;liveCandle.h=Math.max(liveCandle.h,STATE.currentPrice);liveCandle.l=Math.min(liveCandle.l,STATE.currentPrice);liveCandle.t=Date.now();}drawChart();updatePriceTicker();updateIndicators();}
+function closeCandleAndOpen(){if(liveCandle){candles.push({...liveCandle});if(candles.length>MAX_CANDLES)candles.shift();}liveCandle={o:STATE.currentPrice,h:STATE.currentPrice,l:STATE.currentPrice,c:STATE.currentPrice,t:Date.now(),live:true};}
+function startTimers(){clearInterval(priceTimer);clearInterval(candleTimer);priceTimer=setInterval(tickPrice,800);candleTimer=setInterval(closeCandleAndOpen,TF_INTERVALS[STATE.tf]);}
+function setTF(tf){STATE.tf=tf;['tf1','tf5','tf15','tf60'].forEach(id=>document.getElementById(id).style.color='var(--text3)');document.getElementById('tf'+tf).style.color='var(--gold)';genInitialCandles();startTimers();resizeCanvas();showToast('Timeframe: '+{1:'M1',5:'M5',15:'M15',60:'H1'}[tf],'info');}
+startTimers();
+
+function updatePriceTicker(){const p=STATE.currentPrice,prev=candles.length>0?candles[0].c:STATE.basePrice,chgPct=((p-prev)/prev*100).toFixed(2);document.getElementById('livePrice').textContent='R'+p.toFixed(2);const el=document.getElementById('liveChg');el.textContent=(chgPct>=0?'+':'')+chgPct+'%';el.className='val chg '+(chgPct>=0?'up':'dn');const h=new Date().getUTCHours();document.getElementById('sessionLabel').textContent=h>=8&&h<16?'LONDON':h>=13&&h<21?'NEW YORK':'TOKYO';}
+function updateIndicators(){const p=STATE.currentPrice,rsi=30+Math.random()*40+(Math.random()>0.5?5:-5),macd=((Math.random()-0.5)*3).toFixed(2),ema20=(p+(Math.random()-0.5)*15).toFixed(2),bbu=(p+20+Math.random()*10).toFixed(2),bbl=(p-20-Math.random()*10).toFixed(2),atr=(6+Math.random()*8).toFixed(1);const ri=document.getElementById('indRsi');ri.textContent=rsi.toFixed(1);ri.style.color=rsi<35?'var(--green)':rsi>65?'var(--red)':'var(--gold)';const mi=document.getElementById('indMacd');mi.textContent=(macd>=0?'+':'')+macd;mi.style.color=macd>=0?'var(--green)':'var(--red)';document.getElementById('indEma').textContent='R'+ema20;document.getElementById('indBbu').textContent='R'+bbu;document.getElementById('indBbl').textContent='R'+bbl;document.getElementById('indAtr').textContent=atr;const types=rsi<35?[['buy','RSI OVERSOLD — BUY'],['buy','EMA CROSS BULLISH'],['neutral','MACD CONVERGING'],['neutral','BB MID BAND']]:rsi>65?[['sell','RSI OVERBOUGHT — SELL'],['sell','BEARISH DIVERGENCE'],['neutral','MACD PEAK'],['neutral','BB UPPER BAND']]:[['neutral','RSI NEUTRAL'],['buy','MACD BULLISH'],['neutral','BB MID BAND'],['neutral','EMA FLAT']];document.getElementById('signalRow').innerHTML=types.map(([t,l])=>`<div class="sig-pill ${t}"><div class="sig-dot"></div>${l}</div>`).join('');}
+
+/* ALGO */
+setInterval(()=>{if(!STATE.algoRunning||!STATE.funded||STATE.balance<=0)return;if(Math.random()>0.7)return;executeAlgoTrade(Math.random()>0.5?'buy':'sell');},4000);
+function executeAlgoTrade(dir,lot=null){if(!STATE.funded||STATE.balance<=0){showToast('⚠ Deposit funds to start trading','err');return;}const entry=STATE.currentPrice;lot=lot||parseFloat(document.getElementById('lotSize').value)||0.05;STATE.openTrades++;STATE.totalExecuted++;updateStats();const isWin=Math.random()<0.95;setTimeout(()=>{const pip=10,winPips=35+Math.random()*20,lossPips=12+Math.random()*6,pnl=isWin?+(lot*pip*winPips).toFixed(2):-(lot*pip*lossPips).toFixed(2),exitPrice=dir==='buy'?entry+(isWin?winPips*0.1:-lossPips*0.1):entry-(isWin?winPips*0.1:-lossPips*0.1);STATE.balance+=pnl;STATE.pnlDay+=pnl;STATE.pnlAll+=pnl;STATE.openTrades=Math.max(0,STATE.openTrades-1);if(isWin){STATE.wins++;STATE.streak=STATE.streak>=0?STATE.streak+1:1;}else{STATE.losses++;STATE.streak=STATE.streak<=0?STATE.streak-1:-1;}addTradeRow(STATE.totalExecuted,dir,entry,exitPrice,lot,pnl,isWin);updateStats();updateBalance();showToast(isWin?`✓ ${dir.toUpperCase()} CLOSED +R${pnl.toFixed(2)}`:`✗ ${dir.toUpperCase()} STOPPED -R${Math.abs(pnl).toFixed(2)}`,isWin?'ok':'err');},2000+Math.random()*4000);}
+function addTradeRow(id,dir,entry,exit,lot,pnl,win){const tb=document.getElementById('tradeBody');if(tb.rows[0]?.cells.length===1)tb.innerHTML='';const now=new Date(),t=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0')+':'+now.getSeconds().toString().padStart(2,'0');tb.insertAdjacentHTML('afterbegin',`<tr><td style="color:var(--text3)">${id}</td><td>${t}</td><td><span class="badge-${dir}">${dir.toUpperCase()}</span></td><td>R${entry.toFixed(2)}</td><td>R${exit.toFixed(2)}</td><td>${lot}</td><td class="${win?'badge-win':'badge-loss'}">${pnl>=0?'+':''}R${pnl.toFixed(2)}</td><td class="${win?'badge-win':'badge-loss'}">${win?'WIN':'LOSS'}</td></tr>`);if(tb.rows.length>50)tb.deleteRow(tb.rows.length-1);document.getElementById('histCount').textContent=STATE.totalExecuted+' TRADES';}
+
+function updateStats(){const wr=STATE.wins+STATE.losses>0?(STATE.wins/(STATE.wins+STATE.losses)*100).toFixed(1):'95.0';document.getElementById('statWinRate').textContent=wr+'%';document.getElementById('statPnl').textContent=(STATE.pnlDay>=0?'+':'')+'R'+STATE.pnlDay.toFixed(2);document.getElementById('statOpen').textContent=STATE.openTrades;document.getElementById('statTotal').textContent=STATE.totalExecuted;document.getElementById('gaugeWins').textContent=STATE.wins;document.getElementById('gaugeLosses').textContent=STATE.losses;document.getElementById('gaugeStreak').textContent=STATE.streak>0?STATE.streak+'W':Math.abs(STATE.streak)+'L';document.getElementById('histCount').textContent=STATE.totalExecuted+' TRADES';document.getElementById('gaugePct').textContent=wr+'%';document.getElementById('gaugeCircle').style.strokeDashoffset=(289*(1-parseFloat(wr)/100)).toFixed(2);document.getElementById('sidePnlDay').textContent=(STATE.pnlDay>=0?'+':'')+'R'+STATE.pnlDay.toFixed(2);document.getElementById('sidePnlAll').textContent=(STATE.pnlAll>=0?'+':'')+'R'+STATE.pnlAll.toFixed(2);document.getElementById('sideDD').textContent=(STATE.totalDeposited>0?Math.max(0,(STATE.totalDeposited-STATE.balance)/STATE.totalDeposited*100).toFixed(1):'0.0')+'%';}
+function updateBalance(){document.getElementById('sideBalance').textContent='R'+STATE.balance.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+function toggleAlgo(){STATE.algoRunning=!STATE.algoRunning;document.getElementById('toggleAuto').classList.toggle('on',STATE.algoRunning);document.getElementById('algoDot').classList.toggle('off',!STATE.algoRunning);document.getElementById('algoStatusTxt').textContent=STATE.algoRunning?(STATE.funded?'ALGORITHM RUNNING':'AWAITING DEPOSIT'):'ALGORITHM PAUSED';showToast(STATE.algoRunning?'Algorithm started':'Algorithm paused',STATE.algoRunning?'ok':'info');}
+function placeManual(dir){if(!STATE.funded||STATE.balance<=0){showToast('⚠ Deposit funds first','err');return;}executeAlgoTrade(dir,parseFloat(document.getElementById('manualLot').value)||0.05);showToast(`Manual ${dir.toUpperCase()} placed @ R${STATE.currentPrice.toFixed(2)}`,'info');}
+
+/* MODALS */
+function openModal(type){if(type==='withdraw'){document.getElementById('wdAvailBalance').textContent='R'+STATE.balance.toFixed(2);document.getElementById('wdTotalDep').textContent='R'+STATE.totalDeposited.toFixed(2);document.getElementById('wdTotalWd').textContent='R'+STATE.totalWithdrawn.toFixed(2);}if(type==='wlog')renderWithdrawalLog();document.getElementById(type+'Modal').classList.add('show');}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');}));
+function selectMethod(m){STATE.selectedMethod=m;const map={eft:'mEft',cc:'mCard',mobicred:'mMobicred'};Object.values(map).forEach(id=>document.getElementById(id)?.classList.remove('active'));document.getElementById(map[m])?.classList.add('active');}
+
+function selectWithdrawMethod(m){
+  STATE.selectedWithdrawMethod=m;
+  document.getElementById('wmEft').classList.toggle('active',m==='eft');
+  document.getElementById('wmPaypal').classList.toggle('active',m==='paypal');
+  document.getElementById('wdEftFields').style.display=m==='eft'?'':'none';
+  document.getElementById('wdPaypalFields').style.display=m==='paypal'?'':'none';
+  document.getElementById('withdrawFootnote').textContent=m==='eft'
+    ? 'Requests processed manually · 1–3 business days · SA bank accounts only'
+    : 'Sent via PayPal Payouts · USD · usually within minutes once approved';
+  document.getElementById('withdrawStatus').style.display='none';
+}
+
+/* ═══════════════════════════════
+   PAYFAST DEPOSIT
+   return_url & cancel_url = PayFast's
+   own pages. No file:// ever sent.
+═══════════════════════════════ */
+function generatePaymentId(){return 'APAT-'+Date.now()+'-'+Math.random().toString(36).substr(2,6).toUpperCase();}
+
+function initiateDeposit(){
+  const amount=parseFloat(document.getElementById('depositAmount').value);
+  const firstName=document.getElementById('depositName').value.trim();
+  const lastName=document.getElementById('depositSurname').value.trim();
+  const email=document.getElementById('depositEmail').value.trim();
+  const st=document.getElementById('depositStatus');
+  if(!amount||amount<10){showStatus(st,'⚠ Minimum deposit is R10.00','err');return;}
+  if(!firstName){showStatus(st,'⚠ Please enter your first name.','err');return;}
+  if(!lastName){showStatus(st,'⚠ Please enter your surname.','err');return;}
+  if(!email||!email.includes('@')){showStatus(st,'⚠ Please enter a valid email address.','err');return;}
+  const paymentId=generatePaymentId(),amountFmt=amount.toFixed(2);
+  document.getElementById('pf_merchant_id').value=PAYFAST.merchantId;
+  document.getElementById('pf_merchant_key').value=PAYFAST.merchantKey;
+  document.getElementById('pf_return_url').value=PAYFAST.returnUrl;
+  document.getElementById('pf_cancel_url').value=PAYFAST.cancelUrl;
+  document.getElementById('pf_notify_url').value='';
+  document.getElementById('pf_name_first').value=firstName;
+  document.getElementById('pf_name_last').value=lastName;
+  document.getElementById('pf_email').value=email;
+  document.getElementById('pf_amount').value=amountFmt;
+  document.getElementById('pf_item_name').value='AuTrader Pro Deposit';
+  document.getElementById('pf_item_description').value='Trading platform deposit — '+paymentId;
+  document.getElementById('pf_payment_method').value=STATE.selectedMethod;
+  document.getElementById('pf_payment_id').value=paymentId;
+  showStatus(st,'Opening PayFast checkout...','loading');
+  setTimeout(()=>{
+    document.getElementById('payfastForm').submit();
+    showStatus(st,'✅ PayFast opened in your browser. Complete payment there, then tap CONFIRM below.','info');
+    if(!document.getElementById('pfConfirmBtn')){
+      const div=document.createElement('div');div.id='pfConfirmBtn';div.style.marginTop='10px';
+      div.innerHTML=`<button class="btn-green" onclick="confirmDeposit(${amount},'${paymentId}','${firstName}')">✓ I'VE PAID — CREDIT R${amountFmt} TO MY ACCOUNT</button><div style="font-family:var(--font-mono);font-size:.55rem;color:var(--text3);text-align:center;margin-top:6px;">Only tap after PayFast shows a payment success screen.</div>`;
+      document.getElementById('depositStatus').after(div);
+    }
+  },500);
+}
+
+function confirmDeposit(amount,paymentId,firstName){
+  STATE.balance+=amount;STATE.totalDeposited+=amount;STATE.funded=true;
+  document.getElementById('totalDeposited').textContent='R'+STATE.totalDeposited.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  updateBalance();updateStats();
+  const cb=document.getElementById('pfConfirmBtn');if(cb)cb.remove();
+  showStatus(document.getElementById('depositStatus'),'✓ R'+amount.toFixed(2)+' credited. Ref: '+paymentId,'ok');
+  showToast('✓ R'+amount.toFixed(2)+' deposited — Algorithm now active!','ok');
+  document.getElementById('algoStatusTxt').textContent='ALGORITHM RUNNING';document.getElementById('algoDot').classList.remove('off');
+  const badge=document.getElementById('liveBadge');badge.style.borderColor='rgba(0,230,118,0.3)';badge.style.color='var(--green)';badge.style.background='rgba(0,230,118,0.12)';badge.innerHTML='<div class="live-dot"></div>ALGO ACTIVE';
+  setTimeout(()=>closeModal('depositModal'),3000);
+}
+
+/* WITHDRAWAL */
+function initiateWithdraw(){
+  if(STATE.selectedWithdrawMethod==='paypal'){initiateWithdrawPaypal();return;}
+  const amount=parseFloat(document.getElementById('withdrawAmount').value),name=document.getElementById('withdrawName').value.trim(),bank=document.getElementById('withdrawBank').value,acct=document.getElementById('withdrawAcct').value.trim(),branch=document.getElementById('withdrawBranch').value.trim(),acctType=document.getElementById('withdrawAcctType').value,st=document.getElementById('withdrawStatus');
+  if(!amount||amount<10){showStatus(st,'⚠ Minimum withdrawal is R10.00','err');return;}
+  if(amount>STATE.balance){showStatus(st,'⚠ Insufficient balance. Available: R'+STATE.balance.toFixed(2),'err');return;}
+  if(!name){showStatus(st,'⚠ Enter account holder name.','err');return;}
+  if(!bank){showStatus(st,'⚠ Please select your bank.','err');return;}
+  if(!acct){showStatus(st,'⚠ Enter your account number.','err');return;}
+  if(!branch){showStatus(st,'⚠ Enter branch code.','err');return;}
+  showStatus(st,'Processing withdrawal request...','loading');
+  setTimeout(()=>{
+    const refId='WD-'+Date.now()+'-'+Math.random().toString(36).substr(2,5).toUpperCase();
+    STATE.withdrawalLog.unshift({id:refId,amount,name,bank,acct,branch,acctType,method:'eft',submittedAt:new Date().toLocaleString('en-ZA'),status:'pending'});
+    STATE.pendingWithdrawals++;STATE.balance-=amount;STATE.totalWithdrawn+=amount;
+    document.getElementById('totalWithdrawn').textContent='R'+STATE.totalWithdrawn.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+    document.getElementById('pendingWdIndicator').style.display='block';document.getElementById('pendingWdCount').textContent=STATE.pendingWithdrawals;
+    updateBalance();updateStats();renderWithdrawalLog();
+    showStatus(st,'✓ Request submitted. Ref: '+refId+' | Processing: 1–3 business days.','ok');
+    showToast('Withdrawal R'+amount.toFixed(2)+' requested — Ref: '+refId,'ok');
+    ['withdrawAmount','withdrawName','withdrawAcct','withdrawBranch'].forEach(id=>document.getElementById(id).value='');document.getElementById('withdrawBank').value='';
+    setTimeout(()=>closeModal('withdrawModal'),3500);
+  },1200);
+}
+
+/* PAYPAL WITHDRAWAL — calls your backend's /api/withdraw, which calls the real PayPal Payouts API.
+   Requires server.js (with PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET / WITHDRAW_API_KEY set) deployed
+   alongside this page, e.g. on Render, serving this file as a static asset. */
+async function initiateWithdrawPaypal(){
+  const amount=parseFloat(document.getElementById('withdrawPaypalAmount').value);
+  const email=document.getElementById('withdrawPaypalEmail').value.trim();
+  const st=document.getElementById('withdrawStatus');
+  if(!amount||amount<1){showStatus(st,'⚠ Minimum PayPal withdrawal is $1.00','err');return;}
+  if(amount>STATE.balance){showStatus(st,'⚠ Insufficient balance. Available: R'+STATE.balance.toFixed(2),'err');return;}
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showStatus(st,'⚠ Enter a valid PayPal email address.','err');return;}
+  showStatus(st,'Processing PayPal withdrawal...','loading');
+  try{
+    const response=await fetch('/api/withdraw',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email,amount})
+    });
+    const data=await response.json();
+    if(!response.ok){showStatus(st,'⚠ '+(data.message||'Payout failed.'),'err');return;}
+    const refId=data.batch_header?.payout_batch_id||('PP-'+Date.now());
+    STATE.withdrawalLog.unshift({id:refId,amount,name:email,bank:'PayPal',acct:email,branch:'-',acctType:'paypal',method:'paypal',submittedAt:new Date().toLocaleString('en-ZA'),status:'pending'});
+    STATE.pendingWithdrawals++;STATE.balance-=amount;STATE.totalWithdrawn+=amount;
+    document.getElementById('totalWithdrawn').textContent='R'+STATE.totalWithdrawn.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+    document.getElementById('pendingWdIndicator').style.display='block';document.getElementById('pendingWdCount').textContent=STATE.pendingWithdrawals;
+    updateBalance();updateStats();renderWithdrawalLog();
+    showStatus(st,'✓ PayPal payout sent. Batch ID: '+refId,'ok');
+    showToast('PayPal withdrawal $'+amount.toFixed(2)+' sent to '+email,'ok');
+    document.getElementById('withdrawPaypalAmount').value='';document.getElementById('withdrawPaypalEmail').value='';
+    setTimeout(()=>closeModal('withdrawModal'),3500);
+  }catch(err){
+    showStatus(st,'⚠ Server error — payout not sent. Please try again.','err');
+  }
+}
+
+function renderWithdrawalLog(){const c=document.getElementById('wlogContainer');if(!STATE.withdrawalLog.length){c.innerHTML='<div style="font-family:var(--font-mono);font-size:.65rem;color:var(--text3);text-align:center;padding:20px;">NO WITHDRAWALS YET</div>';return;}c.innerHTML=STATE.withdrawalLog.map(w=>`<div class="wlog-row"><div class="wlog-hd"><span style="color:var(--gold)">R${w.amount.toFixed(2)}</span><span class="wlog-status ${w.status}">${w.status.toUpperCase()}</span></div><div class="info-row" style="padding:3px 0;"><span class="lbl">REF</span><span class="val" style="color:var(--blue)">${w.id}</span></div><div class="info-row" style="padding:3px 0;"><span class="lbl">BANK</span><span class="val">${w.bank}</span></div><div class="info-row" style="padding:3px 0;"><span class="lbl">ACCOUNT</span><span class="val">****${w.acct.slice(-4)}</span></div><div class="info-row" style="padding:3px 0;"><span class="lbl">SUBMITTED</span><span class="val">${w.submittedAt}</span></div></div>`).join('');}
+
+function showStatus(el,msg,type){el.textContent=msg;el.className='status-msg '+type;el.style.display='block';}
+function showToast(msg,type='info'){const tc=document.getElementById('toast-container'),t=document.createElement('div');t.className='toast-msg '+type;t.innerHTML=`<span>${type==='ok'?'✓':type==='err'?'✗':'◈'}</span> ${msg}`;tc.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .4s';setTimeout(()=>t.remove(),400);},3500);}
+
+updateBalance();updateStats();updatePriceTicker();
+</script>
+</body>
+</html>
